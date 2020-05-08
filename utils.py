@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 from torch import optim
@@ -6,6 +7,10 @@ from tqdm import tqdm
 import random
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
+import pickle
+import itertools
+import matplotlib
+import matplotlib.pyplot as plt
 
 def train_cycle(model, optimizer, loss_func, n_epoch, train_loader, validation_loader, device):
     model.train()
@@ -92,3 +97,64 @@ def train(model, dataset, device, loss_func=None, lr=0.001, n_epoch=1000, batch_
         print("Something went wrong")
         raise
     return train_loss, val_loss, best_model
+
+emotion_dict = {'ang': 0,
+                'dis': 1,
+                'hap': 2,
+                'sad': 3,
+                'sca': 4,
+                'sur': 5,
+                'neu': 6
+                }
+
+emo_keys = list(['ang', 'hap', 'sad', 'fea', 'sur', 'neu', 'sca'])
+
+def plot_confusion_matrix(cm, classes,
+                          normalize=False,
+                          title='Confusion matrix',
+                          cmap=plt.cm.Blues):
+    """
+    This function prints and plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    # plt.figure(figsize=(8,8))
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j],
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    
+def one_hot_encoder(true_labels, num_records, num_classes):
+    temp = np.array(true_labels[:num_records])
+    true_labels = np.zeros((num_records, num_classes))
+    true_labels[np.arange(num_records), temp] = 1
+    return true_labels
+
+def display_results(y_test, pred_probs, cm=True):
+    pred = np.argmax(pred_probs, axis=-1)
+    one_hot_true = one_hot_encoder(y_test, len(pred), len(emotion_dict))
+    print('Test Set Accuracy =  {0:.3f}'.format(accuracy_score(y_test, pred)))
+    print('Test Set F-score =  {0:.3f}'.format(f1_score(y_test, pred, average='macro')))
+    print('Test Set Precision =  {0:.3f}'.format(precision_score(y_test, pred, average='macro')))
+    print('Test Set Recall =  {0:.3f}'.format(recall_score(y_test, pred, average='macro')))
+    if cm:
+        plot_confusion_matrix(confusion_matrix(y_test, pred), classes=emo_keys)
