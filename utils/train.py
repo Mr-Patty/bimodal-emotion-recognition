@@ -76,7 +76,7 @@ def eval_epoch(model, iterator, loss_func, device):
     model.eval()
     
     with torch.no_grad():
-        for i, batch in enumerate(iterator):
+        for batch in tqdm(iterator):
             x, y = batch
             x = x.to(device)
             y = y.to(device)
@@ -97,6 +97,7 @@ def train_cycle(model, optimizer, loss_func, n_epoch, train_loader, validation_l
     test_losses = []
     train_acces = []
     test_acces = []
+    
     for epoch in range(n_epoch):
         start_time = time.time()
     
@@ -140,7 +141,7 @@ def train_cycle(model, optimizer, loss_func, n_epoch, train_loader, validation_l
         print(f'Epoch: {epoch+1:02} | Epoch Time: {epoch_mins}m {epoch_secs}s')
         print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f}%')
         print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f}%') 
-    return epoch_losses, epoch_losses_val, model
+    return train_losses, test_losses, train_acces, test_acces, model
 
 def train(model, dataset, device, loss_func=None, lr=0.001, n_epoch=1000, batch_size=1, shuffle=True,
           validation_split=.15):
@@ -150,7 +151,7 @@ def train(model, dataset, device, loss_func=None, lr=0.001, n_epoch=1000, batch_
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
-    print("Loading data")
+    # print("Loading data")
     #     validation_split = .15
     shuffle_dataset = shuffle
     random_seed = 42
@@ -173,15 +174,14 @@ def train(model, dataset, device, loss_func=None, lr=0.001, n_epoch=1000, batch_
     validation_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=1,
                                                     sampler=valid_sampler)
     try:
-        train_loss, val_loss, best_model = train_cycle(model, optimizer, loss_func, n_epoch, train_loader,
-                                                       validation_loader, device)
+        train_loss, val_loss, train_acces, test_acces, best_model = train_cycle(model, optimizer, loss_func, n_epoch, train_loader, validation_loader, device)
     except KeyboardInterrupt:
         print("Keyboard interrupt, continue work")
         return
     except:
         print("Something went wrong")
         raise
-    return train_loss, val_loss, best_model
+    return train_loss, val_loss, train_acces, test_acces, best_model
 
 emotion_dict = {'ang': 0,
                 'dis': 1,
