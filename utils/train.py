@@ -92,11 +92,12 @@ def eval_epoch(model, iterator, loss_func, device):
     return epoch_loss / len(iterator), epoch_acc / len(iterator)
 
 def train_cycle(model, optimizer, loss_func, n_epoch, train_loader, validation_loader, device):
-    model.train()
+    #model.train()
     train_losses = []
     test_losses = []
     train_acces = []
     test_acces = []
+    best_valid_loss = float('inf')
     
     for epoch in range(n_epoch):
         start_time = time.time()
